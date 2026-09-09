@@ -154,6 +154,7 @@ Live MCP integration is likewise untested: `search_reference`'s call into `ctx.t
 - **No index is persisted.** Every `search_reference` call re-reads and re-chunks the named documents. Correct and simple at the intended scale of tens of documents; wasteful well before hundreds.
 - **One theme.** Marp's `default`, deliberately. No theme system.
 - **`render_slides` overwrites.** Re-rendering into the same directory replaces `slides.md` and `slides.html` without prompting.
+- **A transitive dependency of `@marp-team/marp-core` has open advisories.** `speech-rule-engine` (Marp's MathML/accessibility subsystem) depends on a vulnerable `@xmldom/xmldom` range; `npm audit fix` cannot resolve it without a breaking `marp-core` major bump. SlideFlow calls `new Marp({ math: false })`, so that subsystem is never invoked at runtime — the vulnerable code path is unreachable here, but `npm audit` will still flag it until upstream ships a fix.
 
 ## License
 

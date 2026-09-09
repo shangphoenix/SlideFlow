@@ -1,0 +1,37 @@
+{
+  "title": "Retrieval Without a Vector Database",
+  "slides": [
+    {
+      "heading": "The Corpus Is Small",
+      "key_points": [
+        "Tens of documents, not millions",
+        "Rebuilt from scratch on every query"
+      ],
+      "notes_hint": "Establish scale first; every later tradeoff follows from it."
+    },
+    {
+      "heading": "What BM25 Actually Computes",
+      "key_points": [
+        "Term frequency with saturation, tuned by k1",
+        "Document length normalisation, tuned by b",
+        "Inverse document frequency over this corpus alone"
+      ],
+      "notes_hint": "Write the formula on the slide only if the audience is technical."
+    },
+    {
+      "heading": "Where It Falls Down",
+      "key_points": ["No synonym matching, by construction"],
+      "notes_hint": "One point, said plainly. Do not soften it."
+    },
+    {
+      "heading": "When To Reach For Embeddings",
+      "key_points": [
+        "Corpus in the tens of thousands or more",
+        "Queries phrased unlike the documents",
+        "You already run a vector store for something else",
+        "Recall matters more than operational simplicity"
+      ],
+      "notes_hint": "End with the honest boundary of the approach, not a sales pitch."
+    }
+  ]
+}

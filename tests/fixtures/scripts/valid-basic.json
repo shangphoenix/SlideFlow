@@ -1,0 +1,18 @@
+[
+  {
+    "heading": "The 4am Page",
+    "script_text": "I want to start with the night this project began. At 4am on a Tuesday, our on-call got paged for latency on a service nobody had touched in months. The graph looked like a heartbeat, a spike every thirty seconds, right on the polling interval. Nothing was broken. That was the problem."
+  },
+  {
+    "heading": "What Polling Actually Cost Us",
+    "script_text": "Once we went looking, the numbers were worse than the pager suggested. Ninety-four percent of our polls came back with nothing changed. We were spending about eighteen thousand dollars a month on database reads that told us nothing. And because we polled every thirty seconds, we had built ourselves a fifteen-second latency floor that no amount of tuning could get under."
+  },
+  {
+    "heading": "Webhooks, and What They Broke",
+    "script_text": "Moving to webhooks solved the cost problem immediately and the latency problem almost as fast. It also broke two things we had been getting for free. Retries meant the same event could arrive twice, and events could arrive out of order. We had to rebuild both guarantees ourselves, and that took longer than the migration did."
+  },
+  {
+    "heading": "What We would Do Differently",
+    "script_text": "If I were starting this again I would design the idempotency key before writing the first retry, rather than after the first duplicate charge. And I would bound the delivery queue on day one. Unbounded queues are more pleasant right up until the moment they are not."
+  }
+]

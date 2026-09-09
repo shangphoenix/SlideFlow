@@ -1,0 +1,18 @@
+[
+  {
+    "heading": "The Corpus Is Small",
+    "script_text": "Before any of the algorithm talk, the number that decides everything: we are searching tens of documents, not millions. At that scale the index is cheap enough to rebuild on every single query, which means there is no index to keep warm, invalidate, or migrate."
+  },
+  {
+    "heading": "What BM25 Actually Computes",
+    "script_text": "BM25 is three ideas multiplied together. Term frequency, but saturating, so the twentieth occurrence of a word counts for far less than the second. Document length normalisation, so a long document does not win just by being long. And inverse document frequency, computed over this corpus alone, so a word that appears everywhere carries no signal."
+  },
+  {
+    "heading": "Where It Falls Down",
+    "script_text": "Here is the honest limitation. If you search for car and the document says automobile, BM25 returns nothing. Not a low score, nothing. It matches tokens, and those are different tokens."
+  },
+  {
+    "heading": "When To Reach For Embeddings",
+    "script_text": "So when do you pay for the vector store? When the corpus grows past what you can rescan cheaply. When your users phrase queries in language the documents never use. When you are already running the infrastructure for something else. Or when recall genuinely matters more than being able to explain every result. Short of that, this is the boring choice, and boring is doing a lot of work here."
+  }
+]

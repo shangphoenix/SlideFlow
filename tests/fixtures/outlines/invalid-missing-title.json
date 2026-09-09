@@ -1,0 +1,19 @@
+{
+  "slides": [
+    {
+      "heading": "Opening",
+      "key_points": ["Why this matters"],
+      "notes_hint": ""
+    },
+    {
+      "heading": "Middle",
+      "key_points": ["The one idea"],
+      "notes_hint": ""
+    },
+    {
+      "heading": "Close",
+      "key_points": ["What to do next"],
+      "notes_hint": ""
+    }
+  ]
+}

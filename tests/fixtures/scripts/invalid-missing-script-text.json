@@ -1,0 +1,17 @@
+[
+  {
+    "heading": "The 4am Page",
+    "script_text": "I want to start with the night this project began."
+  },
+  {
+    "heading": "What Polling Actually Cost Us"
+  },
+  {
+    "heading": "Webhooks, and What They Broke",
+    "script_text": "Moving to webhooks solved the cost problem immediately."
+  },
+  {
+    "heading": "What We would Do Differently",
+    "script_text": "If I were starting this again I would design the idempotency key first."
+  }
+]

@@ -1,0 +1,48 @@
+# Example dsh (Cordis) configuration wiring SlideFlow together with an
+# external MCP filesystem server.
+#
+# NOTE: this file documents the intended wiring; it was not executed against a
+# running dsh instance during development (dsh was not installed locally). The
+# two plugin entries below are the parts that matter and their `config:` blocks
+# follow the shapes published by `@deepseek-ai/dsh-mcp-client` and this plugin.
+# The exact top-level key surrounding the plugin list is the piece to confirm
+# against your dsh version's own generated `cordis.yml` — see
+# `cordis.patch.example.yml` for an overlay form that sidesteps the question.
+
+plugins:
+  # 1. Bridge an external MCP filesystem server into dsh's native tool registry.
+  #
+  # The final path argument is the sandbox boundary: the server will refuse to
+  # read anything outside it. Point it at the directory holding the reference
+  # documents you want SlideFlow to be able to search, and nothing more.
+  #
+  # This registers a bridged tool named `mcp__filesystem__read_text_file`,
+  # which is what SlideFlow's `search_reference` calls.
+  - id: mcp-filesystem
+    name: '@deepseek-ai/dsh-mcp-client'
+    config:
+      serverName: filesystem
+      transport: stdio
+      command: npx
+      args:
+        - '-y'
+        - '@modelcontextprotocol/server-filesystem'
+        - '/absolute/path/to/reference/docs'
+      env: {}
+      cwd: !!js process.cwd()
+
+  # 2. SlideFlow itself.
+  #
+  # `mcpServerName` must equal the `serverName` above — that is how
+  # `search_reference` derives the bridged tool name. Every field is optional;
+  # the values shown are the defaults.
+  - id: slideflow
+    name: slideflow
+    config:
+      mcpServerName: filesystem
+      defaultTopK: 5
+      bm25:
+        k1: 1.5
+        b: 0.75
+      # Defaults to the harness process's working directory.
+      # outputDir: /absolute/path/to/output

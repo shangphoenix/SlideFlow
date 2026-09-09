@@ -1,0 +1,39 @@
+{
+  "title": "Why We Moved Off Polling",
+  "slides": [
+    {
+      "heading": "The 4am Page",
+      "key_points": [
+        "Polling every 30s across 1,200 tenants",
+        "P99 latency spikes correlated with the poll window"
+      ],
+      "notes_hint": "Open with the incident, not the architecture. Keep it under 60 seconds."
+    },
+    {
+      "heading": "What Polling Actually Cost Us",
+      "key_points": [
+        "94% of polls returned no change",
+        "$18k/month in wasted database reads",
+        "Latency floor of 15s by construction"
+      ],
+      "notes_hint": "This is the slide that justifies the project. Slow down on the 94% figure."
+    },
+    {
+      "heading": "Webhooks, and What They Broke",
+      "key_points": [
+        "Push replaced pull for 90% of events",
+        "Delivery retries introduced a new failure mode",
+        "Ordering guarantees had to be rebuilt"
+      ],
+      "notes_hint": "Be honest about the regression. The audience will ask about ordering."
+    },
+    {
+      "heading": "What We would Do Differently",
+      "key_points": [
+        "Design idempotency before the first retry",
+        "Bound the queue from day one"
+      ],
+      "notes_hint": "End on the transferable lesson, not on our specific stack."
+    }
+  ]
+}

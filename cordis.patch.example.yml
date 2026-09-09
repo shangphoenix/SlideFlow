@@ -1,0 +1,30 @@
+# Overlay form of the same wiring, for `dsh --patch cordis.patch.example.yml`.
+#
+# Prefer this over editing `cordis.yml` directly: it inserts the two plugins
+# into an existing configuration without you having to reproduce (or risk
+# clobbering) the rest of the file, and it is the pattern dsh's own MCP
+# documentation uses.
+#
+# NOTE: not executed against a running dsh instance during development.
+
+- insert:
+    # Bridge the external MCP filesystem server. The final `args` entry is the
+    # sandbox boundary — the server refuses reads outside that directory.
+    - id: mcp-filesystem
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: filesystem
+        transport: stdio
+        command: npx
+        args:
+          - '-y'
+          - '@modelcontextprotocol/server-filesystem'
+          - '/absolute/path/to/reference/docs'
+        env: {}
+        cwd: !!js process.cwd()
+
+    # SlideFlow. `mcpServerName` must match `serverName` above.
+    - id: slideflow
+      name: slideflow
+      config:
+        mcpServerName: filesystem

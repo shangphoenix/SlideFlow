@@ -1,0 +1,26 @@
+{
+  "title": "Title at exactly one hundred and twenty characters xxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxxx",
+  "slides": [
+    {
+      "heading": "Heading at exactly eighty chars xxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxxx",
+      "key_points": [
+        "Key point at exactly two hundred characters xxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxxx"
+      ],
+      "notes_hint": "Notes hint at exactly three hundred characters xx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxx xxxxxxxxxx"
+    },
+    {
+      "heading": "Second slide",
+      "key_points": [
+        "a"
+      ],
+      "notes_hint": ""
+    },
+    {
+      "heading": "Third slide",
+      "key_points": [
+        "b"
+      ],
+      "notes_hint": ""
+    }
+  ]
+}

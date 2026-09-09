@@ -1,0 +1,8 @@
+{
+  "entries": [
+    {
+      "heading": "The 4am Page",
+      "script_text": "The script was wrapped in an object instead of being the bare array the schema requires."
+    }
+  ]
+}

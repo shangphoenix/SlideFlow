@@ -1,0 +1,29 @@
+{
+  "title": "A Dense Slide At The Schema Limit",
+  "slides": [
+    {
+      "heading": "Everything At Once",
+      "key_points": [
+        "First point",
+        "Second point",
+        "Third point",
+        "Fourth point",
+        "Fifth point",
+        "Sixth point",
+        "Seventh point",
+        "Eighth point"
+      ],
+      "notes_hint": "Eight key points is the schema maximum; this fixture pins that boundary."
+    },
+    {
+      "heading": "Breathing Room",
+      "key_points": ["A single point"],
+      "notes_hint": "One key point is the schema minimum."
+    },
+    {
+      "heading": "Wrap Up",
+      "key_points": ["Two points", "On this slide"],
+      "notes_hint": ""
+    }
+  ]
+}

@@ -84,7 +84,21 @@ A deliberate asymmetry: reads go through MCP, writes do not.
 
 **It also removes a hard dependency.** `render_slides` works with no MCP server configured at all. Only `search_reference` requires one, and only when the user actually supplies reference documents. Someone who just wants a deck from a topic never needs to configure MCP.
 
-The tradeoff: `render_slides` can write anywhere the harness process can write. That is the same authority any native dsh tool has, and it is bounded by user confirmation — the render stage runs only after the user has approved both artifacts.
+The tradeoff: `render_slides` can write anywhere the harness process can write.
+
+**A live run on 2026-09-13 showed this is sharper than "the same authority any native dsh tool has", and the original wording here was too comfortable.** dsh's own file tools are governed by `dsh-sandbox-policy`, which the Desktop base composition mounts as `workspace-write` anchored on the session's workspace. During the end-to-end test the agent noticed its *own* read tool might be denied on the output directory (it sat outside the workspace) and fell back to a shell command to confirm the files. `render_slides` had already written there without resistance, because `node:fs` does not consult that policy at all.
+
+So the accurate statement is: **a dsh plugin that does file I/O through raw `node:fs` is not subject to the harness's sandbox policy.** What bounds `render_slides` is the confirmation gate — a soft, prose-level constraint the model can in principle ignore — plus whatever the OS grants the process. That is acceptable for a portfolio tool whose output directory is operator-configured, and it is the wrong default for anything shipping to users: the honest fix is to resolve the output path against the sandbox policy (or write through `ctx.fs`) and fail loudly outside it, rather than to rely on the gate.
+
+The same run made the asymmetry concrete across three separate boundaries, which turn out to have quite different reach:
+
+| Boundary | Governs | Observed |
+|---|---|---|
+| Model judgement | What the model declines to do at all | Refused to print a credentials file *before* any sandbox was consulted |
+| `dsh-sandbox-policy` (`workspace-write`) | Writes scoped to the workspace; reads broader | Read a repo file outside the workspace; could not write there |
+| MCP server allowed-directory | Only the one directory passed on its argv | Narrowest — denied a path one level above the references directory |
+
+SlideFlow's two file paths sit at opposite extremes of that table: `search_reference`'s reads are constrained by the narrowest boundary, and `render_slides`' writes by none of them.
 
 ## 6. Confirm-and-re-execute, and the exact routing rule
 
@@ -156,13 +170,23 @@ Several of these were closed on 2026-09-13 by probing a real **DSH Desktop 2.0.5
 
    Also confirmed: on Windows the spawn command must be `npx.cmd`, not `npx` — the bare name fails `ENOENT` because npx is a `.cmd` shim.
 
-3. **Whether `parent: exec.token` behaves as documented** for a nested dispatch from a native tool into a bridged MCP tool. The type documentation is explicit that a parentless call is rejected under PTC mode; that this is the *right* token to pass is inferred from the docs, not observed.
+3. ~~**Whether `parent: exec.token` behaves as documented**~~ **Resolved.** A live session ran `search_reference` against a reference document and it returned ranked passages, so the nested dispatch — native tool → `ctx.tools.execute` → MCP-bridged `mcp__filesystem__read_text_file` — is accepted with the token and ids we forward. The error path is confirmed too: a path outside the allowed directory came back as
 
-4. **Skill discovery.** That `ctx.skills.registerProvider` inside `apply()` surfaces all three skills in the agent's catalog, that `rank: 700` does not collide with anything, and that a user-invocable skill shows up as expected on the human-facing command surface.
+   > `Could not read reference file "…\package.json" via "mcp__filesystem__read_text_file": Error: Access denied - path outside allowed directories: … not in …\tests\fixtures\references. Check that the mcp-client plugin is configured and that the path is inside its allowed directory.`
 
-   Partially derisked: DSH Desktop moves per-agent skill discovery *behind agent presets* — its `dsh-web-app` layer disables the host-plane `skill-filesystem` row, and each preset's `agent.cordis.yml` mounts its own `skill-filesystem` + `tool-skill`. The skill **registry** stays host-plane and layered per scope, and a preset's merged catalog also carries what the deployment registered globally. SlideFlow is inserted as a plain host-plane row (not nested inside any preset), so its provider registers into that global layer and should reach every preset. Confirmed by reading the shipped compositions; not yet observed in a live session.
+   which is `readReferenceFile`'s wrapper carrying the server's own reason through the pipeline intact, rather than collapsing into an opaque tool failure.
 
-5. **End-to-end pipeline behaviour** — the part no unit test can reach: whether the model actually stops at the confirmation gates, and whether it routes revisions per §6's rule. If it does not stop reliably, the fix is in the skill prose, and that is a legitimate finding rather than a code bug.
+4. ~~**Skill discovery.**~~ **Resolved.** All three skills load and are model-invocable in a live session. The mechanism is as predicted from the shipped compositions: DSH Desktop moves per-agent discovery *behind agent presets* (its `dsh-web-app` layer disables the host-plane `skill-filesystem` row; each preset mounts its own `skill-filesystem` + `tool-skill`), but the skill **registry** stays host-plane and layered per scope, so a host-plane provider lands in the global layer every preset's merged catalog carries. The app's Plugin Inventory confirms it: `slideflow` and `mcp-client` both appear under **全局插件 / global plugins ("shared by the system and all sessions")**, running, with zero rows under session-scoped plugins.
+
+5. ~~**End-to-end pipeline behaviour**~~ **Resolved**, and this is the result worth keeping. A full run — outline → script → revision → render — behaved as the skill prose specifies, with the model's own reasoning naming the rule:
+
+   - **Both confirmation gates held.** Each stage presented its artifact and stopped ("I will not write the script or render anything before you reply").
+   - **Wording-only feedback stayed put.** Reasoning: *"This is wording-only feedback, stays in script-skill. Rewrite only slide 2's script_text, keep outline exactly the same."* One tool call (`validate_script`), no outline re-run, no second outline gate.
+   - **Structural feedback routed back.** Asked to add a slide, the model concluded *"这属于结构性反馈（页数变了），按 SlideFlow 的规则我要退回大纲阶段重新走一遍确认"*, called `validate_outline` (not `validate_script`), produced a 13-slide outline, and noted *"script is now stale and will be rewritten after outline approval."*
+   - **Ambiguity was asked about, not guessed.** The new slide overlapped an existing one; the model surfaced the conflict and asked which way to resolve it — the behaviour §6's last paragraph asks for.
+   - **An earlier approved edit survived the structural re-run.** The colloquial rewrite of slide 2 was carried into the regenerated 13-slide script rather than being overwritten.
+
+   Render output was verified structurally against the confirmed artifacts: 1 title slide, 13 content slides, 13 speaker-note comments, per-slide bullet counts `3×12, 4` matching each slide's `key_points`, no trailing separator, and — importantly — the speaker notes did **not** leak into the rendered HTML body, confirming Marp treats the comment blocks as presenter notes.
 
 6. **Version skew between this repo and DSH Desktop.** This package pins the dsh packages at **`0.1.5-alpha.1`** (latest on npm at the time of writing). DSH Desktop 2.0.5 ships **`0.1.2-rc.1`**. Because the plugin is linked in by junction, Node resolves its imports from *this* repo's `node_modules`, so a live Desktop session runs two copies of `dsh-tools` in one process.
 

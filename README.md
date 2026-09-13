@@ -119,7 +119,9 @@ Verify in the app under **Settings → Plugins → Plugin Inventory**: `slideflo
 
 > **Note on version skew.** This package pins the dsh packages at `0.1.5-alpha.1`; DSH Desktop 2.0.5 ships `0.1.2-rc.1`, and a junction-linked plugin resolves its own copy. Every API SlideFlow uses was probed against `0.1.2-rc.1` and behaves identically — both copies compile tool parameters to byte-identical JSON Schema, and the older copy's validators accept definitions built by the newer one. See open item 6 in [DECISIONS.md](./DECISIONS.md) for the evidence and the reason it is safe here.
 
-> **What is still unverified live.** The MCP filesystem bridge, the patch format, and the tool/skill APIs have all been exercised against the real installed packages and a real MCP server. What has *not* been observed end to end is a model actually driving the pipeline in a session — whether it stops at the confirmation gates and routes revisions per the rule in `script-skill`. See "Open items" in [DECISIONS.md](./DECISIONS.md).
+> **Verified end to end on 2026-09-13**, against DSH Desktop 2.0.5. A full session ran outline → script → revision → render: both confirmation gates held, `search_reference` retrieved through the MCP bridge, wording-only feedback stayed in `script-skill` while structural feedback routed back to `outline-skill`, and the rendered deck matched the confirmed artifacts slide-for-slide. Details and the model's own reasoning traces are in [DECISIONS.md](./DECISIONS.md) §10.
+>
+> Still true: nothing here tests whether the model writes a *good* outline (see Testing strategy), and `render_slides` writes through `node:fs`, which does **not** consult the harness sandbox policy — see DECISIONS.md §5.
 
 ## Configuration
 

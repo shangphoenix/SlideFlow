@@ -97,7 +97,29 @@ npx @deepseek-ai/dsh web --patch cordis.patch.example.yml
 
 The final `args` entry to the MCP filesystem server is the sandbox boundary — that server refuses to read anything outside it. `mcpServerName` in SlideFlow's config must equal `serverName` on the mcp-client instance; that is how `search_reference` derives the bridged tool name.
 
-> **Live dsh integration is untested in this pass.** dsh was not installed locally during development, so the plugin has never been loaded by a running harness. Every API this plugin calls was verified against the installed packages' shipped type definitions and compiled sources, and the whole codebase typechecks against them — but the config wiring above and the MCP filesystem tool's exact response shape are the two things to confirm on first live run. See "Open items" in [DECISIONS.md](./DECISIONS.md).
+On Windows, set `command` to `npx.cmd` — spawning the bare name `npx` fails `ENOENT`, because npx is a `.cmd` shim. A `!!js` ternary that picks per platform **must be quoted**, or YAML reads the ` : ` as a mapping:
+
+```yaml
+command: !!js "process.platform === 'win32' ? 'npx.cmd' : 'npx'"
+```
+
+### DSH Desktop
+
+The Desktop app does not take a `--patch` flag; it boots a **profile** out of the harness home. Wire the plugin into that profile instead:
+
+1. `npm run build` in this repo (the profile loads `lib/`, not `src/`).
+2. Link the package into the profile so the bare specifier `slideflow` resolves. On Windows a junction avoids needing elevation:
+   ```sh
+   mklink /J "%USERPROFILE%\.dsh\profiles\desktop\node_modules\slideflow" "<path to this repo>"
+   ```
+3. Add the two rows to `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`. That file is a **bare top-level array** of patch operations and ships containing `[]`; replace it with the `- insert:` block from [`cordis.patch.example.yml`](./cordis.patch.example.yml). An empty or comments-only file makes boot fail — use `[]` to disable the layer.
+4. Restart DSH Desktop. The profile declares `patchReload: live`, but a newly inserted row was not observed hot-loading into an already-running app.
+
+Verify in the app under **Settings → Plugins → Plugin Inventory**: `slideflow` and `mcp-filesystem` should appear with phase `active`. A row that failed to load is listed with its reason rather than hidden.
+
+> **Note on version skew.** This package pins the dsh packages at `0.1.5-alpha.1`; DSH Desktop 2.0.5 ships `0.1.2-rc.1`, and a junction-linked plugin resolves its own copy. Every API SlideFlow uses was probed against `0.1.2-rc.1` and behaves identically — both copies compile tool parameters to byte-identical JSON Schema, and the older copy's validators accept definitions built by the newer one. See open item 6 in [DECISIONS.md](./DECISIONS.md) for the evidence and the reason it is safe here.
+
+> **What is still unverified live.** The MCP filesystem bridge, the patch format, and the tool/skill APIs have all been exercised against the real installed packages and a real MCP server. What has *not* been observed end to end is a model actually driving the pipeline in a session — whether it stops at the confirmation gates and routes revisions per the rule in `script-skill`. See "Open items" in [DECISIONS.md](./DECISIONS.md).
 
 ## Configuration
 

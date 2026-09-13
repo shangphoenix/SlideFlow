@@ -146,14 +146,31 @@ Recorded because "the spec said X, the code does Y" is exactly what a reviewer s
 
 ## 10. Open items for live integration
 
-Not yet verified against a running harness, and the first things to check:
+Several of these were closed on 2026-09-13 by probing a real **DSH Desktop 2.0.5** install (`dshVersion 0.1.2-rc.1`) rather than reasoning from docs. Resolved items keep their evidence; the rest stay open.
 
-1. **`cordis.yml` top-level shape.** The plugin *entries* in `cordis.example.yml` follow the published shapes for mcp-client and this plugin. The key that wraps the plugin list is assumed to be `plugins:`. Confirm against the dsh version's own generated config — or sidestep it entirely with `cordis.patch.example.yml`, whose `- insert:` overlay form does not depend on the surrounding structure.
+1. ~~**`cordis.yml` top-level shape.**~~ **Resolved.** A patch file is a **bare top-level YAML array** of patch operations — no `plugins:` wrapper. Each element is either an id-targeted override (`- id: x` + `config:`) or `- insert:` carrying a list of new rows. Confirmed against the app's own shipped `dsh-base/cordis.patch.yml` and `dsh-web-app/cordis.patch.yml`, which are exactly this shape. The `cordis.patch.example.yml` overlay form in this repo was already correct.
 
-2. **MCP filesystem response shape.** `search_reference` treats `result.content` as content blocks, keeps the `type: 'text'` ones, and joins their `text`. That follows dsh's `ToolExecutionResult` type. What is unconfirmed is how the mcp-client bridge represents a file read — one text block or several, and whether it prefixes anything. If a read comes back with a header line or split across blocks, `readReferenceFile` is the one place to adjust.
+   One trap worth recording: a `!!js` expression containing a ternary **must be quoted**. `command: !!js process.platform === 'win32' ? 'npx.cmd' : 'npx'` parses as a YAML *mapping* (the ` : ` starts a value), silently yielding an object instead of an expression. The shipped `dsh-base` patch quotes its ternaries for this reason. Unquoted `!!js` is fine only when the expression contains no `: `.
+
+2. ~~**MCP filesystem response shape.**~~ **Resolved.** Spawned `@modelcontextprotocol/server-filesystem` over stdio and called `read_text_file` against a fixture document: the reply carries **exactly one content block**, `type: 'text'`, holding the raw file text with **no header or prefix wrapper**, and `isError` is `undefined` on success. `readReferenceFile`'s filter-and-join needs no adjustment. A path outside the allowed directory returns `isError: true` with `Access denied - path outside allowed directories: …`, which our error path surfaces verbatim. The server exposes 14 tools; both `read_file` and `read_text_file` exist, and `read_text_file` is the right one for plain text.
+
+   Also confirmed: on Windows the spawn command must be `npx.cmd`, not `npx` — the bare name fails `ENOENT` because npx is a `.cmd` shim.
 
 3. **Whether `parent: exec.token` behaves as documented** for a nested dispatch from a native tool into a bridged MCP tool. The type documentation is explicit that a parentless call is rejected under PTC mode; that this is the *right* token to pass is inferred from the docs, not observed.
 
 4. **Skill discovery.** That `ctx.skills.registerProvider` inside `apply()` surfaces all three skills in the agent's catalog, that `rank: 700` does not collide with anything, and that a user-invocable skill shows up as expected on the human-facing command surface.
 
+   Partially derisked: DSH Desktop moves per-agent skill discovery *behind agent presets* — its `dsh-web-app` layer disables the host-plane `skill-filesystem` row, and each preset's `agent.cordis.yml` mounts its own `skill-filesystem` + `tool-skill`. The skill **registry** stays host-plane and layered per scope, and a preset's merged catalog also carries what the deployment registered globally. SlideFlow is inserted as a plain host-plane row (not nested inside any preset), so its provider registers into that global layer and should reach every preset. Confirmed by reading the shipped compositions; not yet observed in a live session.
+
 5. **End-to-end pipeline behaviour** — the part no unit test can reach: whether the model actually stops at the confirmation gates, and whether it routes revisions per §6's rule. If it does not stop reliably, the fix is in the skill prose, and that is a legitimate finding rather than a code bug.
+
+6. **Version skew between this repo and DSH Desktop.** This package pins the dsh packages at **`0.1.5-alpha.1`** (latest on npm at the time of writing). DSH Desktop 2.0.5 ships **`0.1.2-rc.1`**. Because the plugin is linked in by junction, Node resolves its imports from *this* repo's `node_modules`, so a live Desktop session runs two copies of `dsh-tools` in one process.
+
+   Probed on 2026-09-13 and found benign for every API SlideFlow touches:
+
+   - `defineTool`, `ToolCallId`, `SkillRegistry`, `isSkillName` all exist in `0.1.2-rc.1` with the same shapes.
+   - `defineTool` in `0.1.2-rc.1` accepts the full parameter DSL this plugin uses, **including `type: 'json'`**.
+   - Both copies compile an identical parameter spec to **byte-identical JSON Schema**, and `0.1.2-rc.1`'s own `assertSupportedJsonSchema` / `assertObjectJsonSchema` accept a definition built by the `0.1.5-alpha.1` `defineTool`.
+   - `isSkillName('outline-skill') === true`, `isSkillName('outline_skill') === false` in `0.1.2-rc.1` too, independently confirming the kebab-case rename recorded in §9.
+
+   The reason this is safe is narrow and worth stating: the only *runtime* imports from dsh packages are `defineTool` (a pure builder returning a plain object) and `ToolCallId` (a branded-string constructor). Everything else — `Context`, `ToolRunContext`, `SkillProvider` — is `import type` and erased at compile time, and the `ctx` the plugin registers against is always the host's own object. A duplicated *stateful* service would not be safe this way.
